@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DataStory — Automated Data Understanding & Visual Narratives</title>
+  <meta name="description" content="Upload any dataset. DataStory automatically understands columns, calculates statistical anomalies and correlations, and crafts interactive visual stories.">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polygon points='12 2 2 7 12 12 22 7 12 2'/><polyline points='2 17 12 22 22 17'/><polyline points='2 12 12 17 22 12'/></svg>">
+  
+  <!-- Modern Typography inspired by leeholmes.uk -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Chart.js, Confetti & PapaParse for In-Browser Analytics -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.4/dist/confetti.browser.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+  <!-- Application Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Top Sticky Navbar -->
+  <header class="app-header">
+    <div class="header-container">
+      
+      <!-- Brand Logo -->
+      <div class="brand-logo" onclick="setView('landing')">
+        <div class="brand-title">
+          <span>DATASTORY</span>
+          <span class="tag">(v1.0)</span>
+        </div>
+      </div>
+
+      <!-- Current Active Dataset Pill -->
+      <div id="header-dataset-pill" class="active-dataset-pill" onclick="setView('projects')" title="Switch or view logged workspaces">
+        <div class="pulse-dot"></div>
+        <span id="header-dataset-name" style="font-weight: 500; color: #f4f4f5; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+          DataCo Smart Supply Chain
+        </span>
+        <span id="header-dataset-rows" class="mono-paren">
+          (180,519 rows)
+        </span>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="nav-tabs">
+        <button class="nav-tab-btn" data-view="story" onclick="setView('story')">
+          <span>Story Mode</span>
+        </button>
+
+        <button class="nav-tab-btn" data-view="profile" onclick="setView('profile')">
+          <span>Profile</span>
+        </button>
+
+        <button class="nav-tab-btn" data-view="explorer" onclick="setView('explorer')">
+          <span>Explorer</span>
+        </button>
+
+        <button class="nav-tab-btn" data-view="projects" onclick="setView('projects')">
+          <span>Workspaces</span>
+        </button>
+      </nav>
+
+      <!-- Quick Action Buttons -->
+      <div class="nav-actions">
+        <button class="btn-ask" onclick="openAskModal()" title="Ask natural language question">
+          <span>Ask Data</span>
+        </button>
+
+        <button class="btn-clean" onclick="openCleanModal()" title="Auto cleaning & missing value repair">
+          <span>Auto Clean</span>
+        </button>
+
+        <button class="btn-lee-primary" onclick="openUploadModal()">
+          <span>Upload Dataset →</span>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Global Loader -->
+  <div id="global-loader">
+    <div class="spinner"></div>
+    <p class="mono-paren">
+      (Synthesizing empirical distributions...)
+    </p>
+  </div>
+
+  <!-- Main Viewport Router -->
+  <main class="main-viewport">
+
+    <!-- ============================================== -->
+    <!-- 1. LANDING PAGE VIEW -->
+    <!-- ============================================== -->
+    <section id="view-landing" class="view-section active">
+      <div class="hero-wrapper">
+        
+        <!-- Eyebrow Tag -->
+        <div class="eyebrow-line">
+          <span class="dot"></span>
+          <span>(Automated Exploratory Data Understanding & Visual Storytelling)</span>
+        </div>
+
+        <!-- Big Editorial Serif Headline -->
+        <h1 class="hero-heading">
+          Your data <br>
+          <span class="editorial-italic">has a story.</span>
+        </h1>
+
+        <!-- Subtitle -->
+        <p class="hero-subtitle">
+          Drop any raw CSV, TSV, or JSON file. DataStory parses schemas, computes multidimensional correlations, flags statistical anomalies, and crafts an interactive visual narrative.
+        </p>
+
+        <!-- CTA Buttons -->
+        <div class="hero-cta-group">
+          <button class="btn-hero-primary" onclick="openUploadModal()">
+            <span>Upload Dataset (CSV / JSON) →</span>
+          </button>
+
+          <button class="btn-hero-secondary" onclick="selectDataset('dataco-supplychain')">
+            <span>Explore Dataset (180K Rows)</span>
+          </button>
+        </div>
+
+        <!-- Metric Numbers Grid -->
+        <div class="hero-stats-grid">
+          <div class="glass-panel stat-card">
+            <span class="stat-label">(Total Revenue)</span>
+            <div id="landing-stat-sales" class="stat-value">$0.00M</div>
+            <p class="stat-subtext">+14.2% verified volume</p>
+          </div>
+
+          <div class="glass-panel stat-card">
+            <span class="stat-label">(Orders Analyzed)</span>
+            <div id="landing-stat-orders" class="stat-value">0</div>
+            <p class="stat-subtext">Across 180,519 line items</p>
+          </div>
+
+          <div class="glass-panel stat-card">
+            <span class="stat-label">(Time Horizon)</span>
+            <div id="landing-stat-weeks" class="stat-value">0</div>
+            <p class="stat-subtext">Continuous weeks tracked</p>
+          </div>
+
+          <div class="glass-panel stat-card">
+            <span class="stat-label">(Profit Margin)</span>
+            <div id="landing-stat-margin" class="stat-value">0.0%</div>
+            <p class="stat-subtext">Operating contribution</p>
+          </div>
+        </div>
+
+        <!-- 5-Stage Automated Pipeline -->
+        <div class="pipeline-section">
+          <span class="section-eyebrow">(Analytical Pipeline)</span>
+          <h2 class="section-title">From Raw File to Interactive Visual Story</h2>
+
+          <div class="pipeline-grid">
+            <div class="glass-panel pipeline-card">
+              <span class="pipeline-number">(01)</span>
+              <h4>Upload</h4>
+              <p>Drag-and-drop CSV, XLSX, or JSON. Instant client-side stream parsing.</p>
+            </div>
+
+            <div class="glass-panel pipeline-card">
+              <span class="pipeline-number">(02)</span>
+              <h4>Understand</h4>
+              <p>Type inference, null detection, duplicates, and cardinality profiling.</p>
+            </div>
+
+            <div class="glass-panel pipeline-card">
+              <span class="pipeline-number">(03)</span>
+              <h4>Analyze</h4>
+              <p>Z-Score outlier flags, Pearson r correlation matrices, and variance distributions.</p>
+            </div>
+
+            <div class="glass-panel pipeline-card">
+              <span class="pipeline-number">(04)</span>
+              <h4>Storytell</h4>
+              <p>Formulates 7 fullscreen narrative chapters with interactive charts.</p>
+            </div>
+
+            <div class="glass-panel pipeline-card">
+              <span class="pipeline-number">(05)</span>
+              <h4>Explore</h4>
+              <p>"Ask your data" natural language queries + tabular data filtering.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Logged Workspaces Showcase -->
+        <div class="glass-panel datasets-section">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+            <div>
+              <span class="section-eyebrow">(Logged Workspaces)</span>
+              <h3 style="font-family: var(--font-serif); font-size: 1.8rem; font-weight: 400; color: #fff; margin-top: 4px;">
+                Active Data Workspaces
+              </h3>
+            </div>
+            <span class="mono-paren">
+              (Client-side In-Memory Engine)
+            </span>
+          </div>
+
+          <div class="datasets-grid">
+            <!-- Workspace 1: DataCo -->
+            <div class="dataset-item" onclick="selectDataset('dataco-supplychain')">
+              <div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span class="dataset-badge">LOGISTICS</span>
+                  <span class="mono-paren">(180,519 Rows)</span>
+                </div>
+                <h4 class="dataset-title">DataCo Smart Supply Chain</h4>
+                <p class="dataset-desc">65,752 orders, 31 variables, regional logistics, discount-margin correlations, and Q3 2017 anomaly.</p>
+              </div>
+              <div class="dataset-cta">
+                <span>Explore Story →</span>
+              </div>
+            </div>
+
+            <!-- Workspace 2: Superstore -->
+            <div class="dataset-item" onclick="selectDataset('superstore')">
+              <div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span class="dataset-badge">COMMERCIAL</span>
+                  <span class="mono-paren">(9,994 Rows)</span>
+                </div>
+                <h4 class="dataset-title">Superstore Commercial Orders</h4>
+                <p class="dataset-desc">Enterprise commerce logs with Sales, Profit, Discounts, Furniture vs Technology lines, and regional margins.</p>
+              </div>
+              <div class="dataset-cta">
+                <span>Explore Story →</span>
+              </div>
+            </div>
+
+            <!-- Workspace 3: Iris -->
+            <div class="dataset-item" onclick="selectDataset('iris-morphometrics')">
+              <div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span class="dataset-badge">BOTANICAL</span>
+                  <span class="mono-paren">(150 Specimens)</span>
+                </div>
+                <h4 class="dataset-title">Iris Flower Morphometrics</h4>
+                <p class="dataset-desc">Fisher's biometric dataset: Sepal and Petal dimensional distributions across Setosa, Versicolor, and Virginica.</p>
+              </div>
+              <div class="dataset-cta">
+                <span>Explore Story →</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- 2. STORY VIEW -->
+    <!-- ============================================== -->
+    <section id="view-story" class="view-section">
+      <!-- Chapter Stepper Bar -->
+      <div class="chapter-stepper-bar">
+        <div class="chapter-stepper-container">
+          <div id="story-stepper-nav" class="stepper-nav"></div>
+
+          <button id="btn-share-story" class="btn-step-prev" onclick="shareStory()">
+            <span>Share Story</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Main Story Viewport -->
+      <div id="story-main-content" class="story-content-container">
+        <!-- Active Chapter Title -->
+        <div class="chapter-header">
+          <span id="chapter-badge" class="chapter-badge">(CHAPTER 01 — THE BIG PICTURE)</span>
+          <h2 id="chapter-title" class="chapter-title">Macro Trends & Trajectory</h2>
+          <p id="chapter-headline" class="chapter-headline">Observation scale across fulfilled data items.</p>
+          <p id="chapter-lead" class="chapter-leadtext">Continuous performance trajectory tracked across operational timeline.</p>
+        </div>
+
+        <!-- 8-4 Grid Layout -->
+        <div class="story-body-grid">
+          <!-- Left 8-col Visual Display -->
+          <div class="glass-panel story-visual-canvas">
+            <div id="chapter-visual-display" style="width: 100%;"></div>
+
+            <!-- Key Takeaway Banner -->
+            <div class="takeaway-bar">
+              <span id="chapter-takeaway-text">Gross volume experienced consistent upward compounding across successive periods.</span>
+            </div>
+          </div>
+
+          <!-- Right 4-col Sidebar -->
+          <div class="story-sidebar">
+            <div id="chapter-signals-box" class="glass-panel signals-box"></div>
+
+            <!-- Quick Ask AI Widget -->
+            <div class="quick-ask-widget">
+              <span class="mono-paren">(Drill-down Investigation)</span>
+              <h4>Ask a question about this chapter</h4>
+              <p>Ask questions like "Why did profit drop?" or "Which category yields highest margin?"</p>
+              <button class="btn-quick-ask" onclick="openAskModal()">
+                <span>Ask DataStory →</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stepper Navigation Footer -->
+        <div class="story-nav-footer">
+          <button id="btn-prev-chapter" class="btn-step-prev" onclick="prevChapter()">
+            <span>← Previous Chapter</span>
+          </button>
+
+          <span id="chapter-indicator" class="mono-paren">
+            (1 of 7 Chapters)
+          </span>
+
+          <button id="btn-next-chapter" class="btn-step-next" onclick="nextChapter()">
+            <span>Next Chapter →</span>
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- 3. PROFILING VIEW -->
+    <!-- ============================================== -->
+    <section id="view-profile" class="view-section">
+      <div class="profile-container">
+        
+        <!-- Profile Hero Card -->
+        <div class="glass-panel profile-hero">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+            <div>
+              <span class="chapter-badge" style="margin-bottom: 0.75rem;">
+                (SCHEMA & PROFILING REPORT)
+              </span>
+              <h1 id="profile-dataset-name" style="font-family: var(--font-serif); font-size: 2.8rem; font-weight: 400; color: #fff;">
+                DataCo Smart Supply Chain
+              </h1>
+              <p style="font-size: 0.85rem; color: var(--text-dark); margin-top: 0.25rem;">
+                <span id="profile-domain-tag">E-Commerce & Supply Chain</span> • <span id="profile-daterange-tag" class="mono-paren">(Jan 2015 → Oct 2018)</span>
+              </p>
+            </div>
+
+            <div style="display: flex; gap: 0.75rem;">
+              <button class="btn-step-prev" onclick="openCleanModal()">
+                <span>Clean Dataset</span>
+              </button>
+              <button class="btn-lee-primary" onclick="setView('story')">
+                <span>Launch Story Mode →</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Stats Bar -->
+          <div class="profile-stats-bar">
+            <div>
+              <span class="stat-label">(Total Rows)</span>
+              <div id="profile-stat-rows" style="font-size: 1.8rem; font-weight: 700; color: #fff;">180,519</div>
+            </div>
+            <div>
+              <span class="stat-label">(Variables)</span>
+              <div id="profile-stat-cols" style="font-size: 1.8rem; font-weight: 700; color: #fff;">31</div>
+            </div>
+            <div>
+              <span class="stat-label">(Date Horizon)</span>
+              <div id="profile-stat-date" style="font-size: 0.95rem; font-weight: 500; color: #d4d4d8; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Jan 2015 → Oct 2018</div>
+            </div>
+            <div>
+              <span class="stat-label">(Completeness)</span>
+              <div id="profile-stat-complete" style="font-size: 1.8rem; font-weight: 700; color: #fff;">99.2%</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cleaning Health Alerts Container -->
+        <div id="profile-alerts-container" class="profile-alerts-grid"></div>
+
+        <!-- Filter & Search Controls -->
+        <div class="filter-bar">
+          <div class="pill-group">
+            <button class="pill-btn active" data-type="ALL" onclick="setProfileTypeFilter('ALL')">ALL</button>
+            <button class="pill-btn" data-type="NUMBER" onclick="setProfileTypeFilter('NUMBER')">NUMBER</button>
+            <button class="pill-btn" data-type="CATEGORY" onclick="setProfileTypeFilter('CATEGORY')">CATEGORY</button>
+            <button class="pill-btn" data-type="DATE" onclick="setProfileTypeFilter('DATE')">DATE</button>
+            <button class="pill-btn" data-type="ID" onclick="setProfileTypeFilter('ID')">ID</button>
+          </div>
+
+          <div class="search-input-box">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" placeholder="Search column..." oninput="handleProfileSearch(event)">
+          </div>
+        </div>
+
+        <!-- Columns Grid -->
+        <div id="profile-columns-grid" class="columns-grid"></div>
+
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- 4. EXPLORER VIEW -->
+    <!-- ============================================== -->
+    <section id="view-explorer" class="view-section">
+      <div class="explorer-container">
+        
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
+          <div>
+            <h1 style="font-family: var(--font-serif); font-size: 2.2rem; font-weight: 400; color: #fff;">
+              Data Explorer
+            </h1>
+            <p id="explorer-dataset-info" style="font-size: 0.8rem; color: var(--text-dark); margin-top: 2px;">
+              Search, filter, and inspect records from dataset
+            </p>
+          </div>
+
+          <button class="btn-step-prev" onclick="exportExplorerCSV()">
+            <span>Export View to CSV</span>
+          </button>
+        </div>
+
+        <!-- Controls Bar -->
+        <div class="glass-panel table-controls-bar">
+          <form onsubmit="handleExplorerSearch(event)" style="position: relative; width: 100%; max-width: 320px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#71717a" stroke-width="2" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%);"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input id="explorer-search-input" type="text" placeholder="Search across rows..." style="width: 100%; padding: 0.5rem 0.85rem 0.5rem 2.2rem; border-radius: 6px; background: #16161a; border: 1px solid var(--border-subtle); color: #fff; font-size: 0.78rem; outline: none;">
+          </form>
+
+          <div style="display: flex; align-items: center; gap: 1rem; font-size: 0.75rem; color: var(--text-dark);">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span>Rows per page:</span>
+              <select onchange="handleExplorerLimitChange(event)" style="background: #16161a; border: 1px solid var(--border-subtle); color: #fff; font-size: 0.75rem; border-radius: 4px; padding: 2px 6px; outline: none;">
+                <option value="15">15</option>
+                <option value="25" selected>25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Table Container -->
+        <div class="glass-panel" style="overflow: hidden; position: relative;">
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead id="explorer-thead"></thead>
+              <tbody id="explorer-tbody"></tbody>
+            </table>
+          </div>
+
+          <!-- Pagination Footer -->
+          <div class="table-pagination-footer">
+            <span id="explorer-page-info">Showing 1 to 25 records</span>
+
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <button id="btn-explorer-prev" class="btn-step-prev" style="padding: 0.35rem 0.7rem;" onclick="prevExplorerPage()">
+                <span>←</span>
+              </button>
+              <span id="explorer-current-page" class="mono-paren" style="color: #fff; padding: 0 4px;">1</span>
+              <button id="btn-explorer-next" class="btn-step-prev" style="padding: 0.35rem 0.7rem;" onclick="nextExplorerPage()">
+                <span>→</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- 5. PROJECTS / WORKSPACES VIEW -->
+    <!-- ============================================== -->
+    <section id="view-projects" class="view-section">
+      <div class="projects-container">
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+          <div>
+            <h1 style="font-family: var(--font-serif); font-size: 2.2rem; font-weight: 400; color: #fff;">
+              Data Workspaces
+            </h1>
+            <p style="font-size: 0.8rem; color: var(--text-dark); margin-top: 2px;">
+              Access active datasets, automatic visual narratives, and statistical profiles
+            </p>
+          </div>
+
+          <button class="btn-lee-primary" onclick="openUploadModal()">
+            <span>Upload New Dataset →</span>
+          </button>
+        </div>
+
+        <!-- Projects Grid -->
+        <div id="projects-grid" class="projects-grid"></div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ============================================== -->
+  <!-- MODAL: UPLOAD DATASET -->
+  <!-- ============================================== -->
+  <div id="modal-upload" class="modal-overlay">
+    <div class="modal-content-box">
+      <button class="modal-close-btn" onclick="closeModal('modal-upload')">✕</button>
+
+      <!-- Dropzone Initial State -->
+      <div id="upload-dropzone-box" style="text-align: center;">
+        <span class="mono-paren" style="margin-bottom: 0.5rem; display: block;">(Upload / Ingest)</span>
+        <h3 style="font-family: var(--font-serif); font-size: 2rem; font-weight: 400; color: #fff;">Upload Any Dataset</h3>
+        <p style="font-size: 0.78rem; color: var(--text-muted); max-width: 400px; margin: 0.25rem auto 1.5rem;">
+          Drop any CSV or JSON file (e.g. Iris, supply chain, financial transactions). DataStory parses and visualizes it immediately in your browser.
+        </p>
+
+        <div id="upload-error-box" style="display: none; padding: 0.75rem; border-radius: 8px; background: rgba(251, 113, 133, 0.1); border: 1px solid rgba(251, 113, 133, 0.3); color: #fda4af; font-size: 0.75rem; margin-bottom: 1rem; text-align: left;"></div>
+
+        <div class="dropzone" onclick="document.getElementById('upload-file-input').click()">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#71717a" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
+          <div>
+            <p style="font-size: 0.9rem; font-weight: 600; color: #fff;">Drop your CSV or JSON file here</p>
+            <p style="font-size: 0.72rem; color: var(--text-dark); margin-top: 2px;">or click to browse local files</p>
+          </div>
+          <span class="mono-paren">
+            (Supports Iris, Sales, Custom CSVs)
+          </span>
+          <input id="upload-file-input" type="file" accept=".csv,.json,.tsv,.txt" style="display: none;">
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 1rem; border-top: 1px solid var(--border-subtle); text-align: left;">
+          <div>
+            <p style="font-size: 0.78rem; font-weight: 500; color: #e4e4e7;">Or select an active workspace:</p>
+            <p style="font-size: 0.7rem; color: var(--text-dark);">DataCo Supply Chain (180K) or Iris Flower (150)</p>
+          </div>
+          <button class="btn-step-prev" onclick="selectDataset('iris-morphometrics'); closeModal('modal-upload');">
+            <span>Open Iris →</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Processing State -->
+      <div id="upload-processing-box" style="display: none; text-align: left;">
+        <div style="margin-bottom: 1.5rem;">
+          <span class="mono-paren">(Processing Ingest)</span>
+          <h3 style="font-family: var(--font-serif); font-size: 1.8rem; font-weight: 400; color: #fff;">DataStory Processing Engine</h3>
+          <p style="font-size: 0.72rem; color: var(--text-dark);">Synthesizing statistical features and visual narrative...</p>
+        </div>
+
+        <div id="processing-steps-list"></div>
+
+        <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-subtle);">
+          <div class="progress-track" style="height: 3px;">
+            <div id="processing-progress-fill" class="progress-fill" style="width: 20%;"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- MODAL: AUTO CLEAN -->
+  <!-- ============================================== -->
+  <div id="modal-clean" class="modal-overlay">
+    <div class="modal-content-box">
+      <button class="modal-close-btn" onclick="closeModal('modal-clean')">✕</button>
+
+      <div style="margin-bottom: 1.5rem;">
+        <span class="mono-paren">(Data Sanitation)</span>
+        <h3 style="font-family: var(--font-serif); font-size: 1.8rem; font-weight: 400; color: #fff;">Automatic Data Cleaning</h3>
+        <p style="font-size: 0.75rem; color: var(--text-dark);">Heuristic imputation, type standardizations, and deduplication</p>
+      </div>
+
+      <!-- Clean Form -->
+      <div id="clean-form-container">
+        <!-- Missing Values Strategy -->
+        <div style="padding: 1rem; border-radius: 10px; background: rgba(18, 18, 22, 0.7); border: 1px solid var(--border-subtle); margin-bottom: 1rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+            <span style="font-size: 0.78rem; font-weight: 500; color: #e4e4e7;">Missing Value Imputation Strategy</span>
+            <span id="clean-modal-missing-count" class="mono-paren">0 values</span>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+            <button class="strat-btn selected" data-strat="fill_median" style="padding: 0.6rem; border-radius: 8px; border: 1px solid #ffffff; background: #ffffff; color: #000000; text-align: left; cursor: pointer;">
+              <span style="font-weight: 600; font-size: 0.78rem; display: block;">Fill with Median</span>
+              <span style="font-size: 0.65rem; color: #3f3f46;">Numeric center (robust)</span>
+            </button>
+            <button class="strat-btn" data-strat="fill_mode" style="padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-subtle); background: #16161a; color: #a1a1aa; text-align: left; cursor: pointer;">
+              <span style="font-weight: 600; font-size: 0.78rem; display: block;">Fill with Mode</span>
+              <span style="font-size: 0.65rem; color: var(--text-dark);">Most frequent class</span>
+            </button>
+            <button class="strat-btn" data-strat="fill_mean" style="padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-subtle); background: #16161a; color: #a1a1aa; text-align: left; cursor: pointer;">
+              <span style="font-weight: 600; font-size: 0.78rem; display: block;">Fill with Mean</span>
+              <span style="font-size: 0.65rem; color: var(--text-dark);">Arithmetic average</span>
+            </button>
+            <button class="strat-btn" data-strat="drop_rows" style="padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-subtle); background: #16161a; color: #a1a1aa; text-align: left; cursor: pointer;">
+              <span style="font-weight: 600; font-size: 0.78rem; display: block;">Remove Rows</span>
+              <span style="font-size: 0.65rem; color: var(--text-dark);">Prune null records</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Deduplication Toggle -->
+        <div style="padding: 1rem; border-radius: 10px; background: rgba(18, 18, 22, 0.7); border: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+          <div>
+            <span style="font-size: 0.78rem; font-weight: 500; color: #e4e4e7; display: block;">Deduplicate Redundant Rows</span>
+            <span id="clean-modal-dup-count" class="mono-paren">Detected 0 exact duplicate rows</span>
+          </div>
+          <input id="clean-dedup-checkbox" type="checkbox" checked style="width: 16px; height: 16px; accent-color: #ffffff; cursor: pointer;">
+        </div>
+
+        <button id="btn-apply-clean" class="btn-lee-primary" style="width: 100%; justify-content: center;" onclick="applyCleaning()">
+          <span>Apply Clean & Recompute Story →</span>
+        </button>
+      </div>
+
+      <!-- Clean Result Success -->
+      <div id="clean-result-container" style="display: none; text-align: center;">
+        <span class="mono-paren" style="margin-bottom: 0.5rem; display: block;">(Sanitation Complete)</span>
+        <h4 style="font-family: var(--font-serif); font-size: 1.8rem; font-weight: 400; color: #fff;">Dataset Successfully Cleaned</h4>
+        <p style="font-size: 0.75rem; color: var(--text-dark); margin: 0.25rem 0 1.5rem;">
+          Analytical models and story chapters have been recalculated with sanitized records.
+        </p>
+
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; padding: 1rem; border-radius: 10px; background: #16161a; border: 1px solid var(--border-subtle); text-align: left; margin-bottom: 1.5rem;">
+          <div>
+            <span class="stat-label">(Deduplicated)</span>
+            <span id="clean-res-dedup" style="font-size: 0.95rem; font-weight: 600; color: #fff;">0 rows</span>
+          </div>
+          <div>
+            <span class="stat-label">(Imputed)</span>
+            <span id="clean-res-imputed" style="font-size: 0.95rem; font-weight: 600; color: #fff;">0 values</span>
+          </div>
+          <div>
+            <span class="stat-label">(Final Rows)</span>
+            <span id="clean-res-final" style="font-size: 0.95rem; font-weight: 600; color: #fff;">0</span>
+          </div>
+        </div>
+
+        <button class="btn-lee-primary" style="width: 100%; justify-content: center;" onclick="closeModal('modal-clean'); setView('profile');">
+          <span>Done & Return to Profile →</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- MODAL: ASK DATA -->
+  <!-- ============================================== -->
+  <div id="modal-ask" class="modal-overlay">
+    <div class="modal-content-box">
+      <button class="modal-close-btn" onclick="closeModal('modal-ask')">✕</button>
+
+      <div style="margin-bottom: 1.5rem;">
+        <span class="mono-paren">(Natural Language Query)</span>
+        <h3 style="font-family: var(--font-serif); font-size: 1.8rem; font-weight: 400; color: #fff;">Ask DataStory</h3>
+        <p style="font-size: 0.75rem; color: var(--text-dark);">Statistical inference and hypothesis verification</p>
+      </div>
+
+      <!-- Question Input -->
+      <div style="position: relative; margin-bottom: 1rem;">
+        <input 
+          id="ask-query-input" 
+          type="text" 
+          placeholder="Ask anything (e.g. 'Which species is largest?', 'Why did profit drop?')..." 
+          style="width: 100%; padding: 0.85rem 4rem 0.85rem 1rem; border-radius: 8px; background: #16161a; border: 1px solid var(--border-subtle); color: #fff; font-size: 0.85rem; outline: none;"
+          onkeydown="if(event.key==='Enter') submitAskQuery();"
+        >
+        <button 
+          id="btn-submit-ask" 
+          class="btn-lee-primary"
+          style="position: absolute; right: 5px; top: 5px; bottom: 5px; padding: 0 1rem; font-size: 0.75rem;"
+          onclick="submitAskQuery()"
+        >
+          <span>Ask →</span>
+        </button>
+      </div>
+
+      <!-- Suggested Question Chips -->
+      <div style="margin-bottom: 1.5rem;">
+        <span class="stat-label" style="margin-bottom: 0.5rem;">(Suggested Queries)</span>
+        <div style="display: flex; flex-wrap: wrap; gap: 0.35rem;">
+          <button class="pill-btn" style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-subtle); color: #d4d4d8;" onclick="submitAskQuery('Which species has the largest petal length?')">Largest petal length?</button>
+          <button class="pill-btn" style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-subtle); color: #d4d4d8;" onclick="submitAskQuery('Why did profit drop in 2017?')">Why did profit drop in 2017?</button>
+          <button class="pill-btn" style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-subtle); color: #d4d4d8;" onclick="submitAskQuery('Which product is most profitable?')">Most profitable line?</button>
+          <button class="pill-btn" style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-subtle); color: #d4d4d8;" onclick="submitAskQuery('What is the correlation between petal length and petal width?')">Petal length vs width correlation?</button>
+        </div>
+      </div>
+
+      <!-- Answer Box -->
+      <div id="ask-answer-box" style="display: none; padding: 1.25rem; border-radius: 12px; background: #16161a; border: 1px solid var(--border-subtle);">
+        <span id="ask-ans-intent" class="chapter-badge" style="margin-bottom: 0.5rem;">
+          (INTENT: ANALYSIS)
+        </span>
+
+        <h4 id="ask-ans-headline" style="font-size: 1.05rem; font-weight: 600; color: #fff; margin-bottom: 0.4rem;"></h4>
+        <p id="ask-ans-explanation" style="font-size: 0.78rem; color: #a1a1aa; line-height: 1.5; margin-bottom: 1rem;"></p>
+
+        <div id="ask-ans-chart-box" style="margin-bottom: 1rem;"></div>
+
+        <div id="ask-ans-rec-box" style="padding: 0.75rem; border-radius: 8px; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border-subtle); font-size: 0.75rem; color: #d4d4d8;">
+          <strong style="color: #fff; display: block; margin-bottom: 2px;">(Action Recommendation)</strong>
+          <span id="ask-ans-rec-text"></span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- MODAL: PRODUCT DETAIL DRILLDOWN -->
+  <!-- ============================================== -->
+  <div id="modal-product" class="modal-overlay">
+    <div class="modal-content-box" style="max-width: 440px; text-align: center;">
+      <button class="modal-close-btn" onclick="closeModal('modal-product')">✕</button>
+      <div id="modal-product-content"></div>
+      <button class="btn-step-prev" style="width: 100%; justify-content: center; margin-top: 1.25rem;" onclick="closeModal('modal-product')">
+        Close Drill-down
+      </button>
+    </div>
+  </div>
+
+  <!-- Application Logic -->
+  <script src="app.js"></script>
+</body>
+</html>
